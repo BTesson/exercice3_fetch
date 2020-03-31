@@ -2,46 +2,44 @@ let tableEmpBody = document.getElementById('table-emp-body');
 let tableEmpFoot = document.getElementById('table-emp-foot');
 let buttonOrderMonthlySalary = document.getElementById('button-order-monthly-salary');
 
-let dataSalary = {};
 let order = null;
+let dataEmp = [];
 
 let myRequest = new Request("http://dummy.restapiexample.com/api/v1/employees");
-
-/**
- * Affichage en format monaitaire
- */
-const euro = new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2
-  });
   
 /**
  * Récupération des données json
  */
 fetch(myRequest)
     .then(reponse => reponse.json())
-    .then(data => {       
-        if(data.status == "success"){
-            dataSalary = data.data;  
+    .then(data => {      
+        if(data.status == "success"){ 
+            Object.keys(data.data).forEach(function(k){
+                dataEmp.push(new Employee(data.data[k]));
+            })
             addData();      
         } else{
-            errorLoading("Erreur");
+            errorLoading("Erreur 2");
         }
     })
     .catch(err => {
-        errorLoading("Erreur");
+        errorLoading(err);
     });
 
 /**
  * Fonction pour remplir le tbody
  */
 function addData(){
-    if(dataSalary != null){
-        Object.keys(dataSalary).forEach(function(k){   
+    clearTable();
+    let i = 0;
+    if(dataEmp != null){
+        console.log(dataEmp);
+        Object.keys(dataEmp).forEach(function(k){   
             let newTr = document.createElement('tr');
+            newTr.dataset.rowid = i;
             tableEmpBody.appendChild(newTr);
-            addValue(newTr, dataSalary[k]);
+            addValue(newTr, dataEmp[k]);
+            i++;
         });
         addFooterTable();
     }
@@ -57,43 +55,35 @@ function addValue(elemt, value){
 
     addElemt(elemt, 'td', "employee-name", document.createTextNode(value.employee_name));
 
-    let firstChar = value.employee_name.charAt(0).toLowerCase();
-    let lastname = (value.employee_name.split(' '))[1].toLowerCase();
-    let email = firstChar +'.'+ lastname + "@email.com";
-    addElemt(elemt, 'td', "employee-email", document.createTextNode(email));
+    addElemt(elemt, 'td', "employee-email", document.createTextNode(value.employe_email));
 
-    let monthlySalary = euro.format(value.employee_salary / 12);
-    addElemt(elemt, 'td', "employee-monthly-salary", document.createTextNode(monthlySalary));
+    addElemt(elemt, 'td', "employee-monthly-salary", document.createTextNode(value.employee_monthly_salary + " €"));
 
-    let dateOfDay = new Date(); 
-    let year = dateOfDay.getFullYear(); 
-    let yearOfBirth = year - value.employee_age;
-    addElemt(elemt, 'td', "employee-year-of-birth", document.createTextNode(yearOfBirth));
+    addElemt(elemt, 'td', "employee-year-of-birth", document.createTextNode(value.employe_birth));
 
     let buttonDuplicate = document.createElement('button');
     buttonDuplicate.className = "button-duplicate";
-    buttonDuplicate.addEventListener('click', function(){
-        dataSalary.push(value);
-        tableEmpBody.deleteRow(-1);
-        let newTr = document.createElement('tr');
-        tableEmpBody.appendChild(newTr);
-        addValue(newTr, value);
-        addFooterTable();
+    buttonDuplicate.dataset.rowid = elemt.dataset.rowid;
+    buttonDuplicate.addEventListener('click', function(_event){
+        let rowid = _event.target.dataset.rowid;
+        let newEmp = new Employee(dataEmp[rowid]);
+        let newid = 0; 
+        dataEmp.forEach(emp => {
+            newid = (parseInt(newid) < parseInt(emp.id)) ? emp.id : newid;
+        });
+        newEmp.id = ++newid;
+        dataEmp.push(newEmp);
+        addData();
     });
     buttonDuplicate.textContent = "Duplicate";
     addElemt(elemt, 'td', "td-button-duplicate", buttonDuplicate);
 
     let buttonDelete = document.createElement('button');
     buttonDelete.className = 'button-delete';
-    buttonDelete.addEventListener('click', function(){  
-        dataSalary.splice(dataSalary.indexOf(value), 1);
-        tableEmpBody.removeChild(this.parentNode.parentNode);
-        tableEmpBody.deleteRow(-1);
-        if(dataSalary.length == 0) {
-            addElemt(addElemt(tableEmpBody, 'tr', 'tr-no-value', ""), 'td', 'td-no-value', document.createTextNode("No value")).colSpan = 7;
-            alert("Tableau vide");
-        }
-        addFooterTable();
+    buttonDelete.dataset.rowid = elemt.dataset.rowid;
+    buttonDelete.addEventListener('click', function(_event){  
+        dataEmp.splice(_event.target.dataset.rowid, 1);
+        addData();
     });
     buttonDelete.textContent = "Delete";
     addElemt(elemt, 'td', "td-button-delete", buttonDelete);
@@ -105,16 +95,16 @@ function addValue(elemt, value){
 function addFooterTable(){
     let newTr = addElemt(tableEmpBody, 'tr', 'total-table', "");
     
-    addElemt(newTr, 'td', "total-employee-id", document.createTextNode(dataSalary.length));
+    addElemt(newTr, 'td', "total-employee-id", document.createTextNode(dataEmp.length));
 
     let tdVoid1 = addElemt(newTr, 'td', "td-void-1", document.createTextNode(""));
     tdVoid1.colSpan = 2;
 
     let total = 0; 
-    Object.keys(dataSalary).forEach(function(k){ 
-        total = total + (dataSalary[k].employee_salary / 12);
+    Object.keys(dataEmp).forEach(function(k){ 
+        total += parseFloat(dataEmp[k].employee_monthly_salary);
     });
-    addElemt(newTr, 'td', "total-employee-monthly-salary", document.createTextNode(euro.format(total)));
+    addElemt(newTr, 'td', "total-employee-monthly-salary", document.createTextNode(total.toFixed(2) + " €"));
     
     let tdVoid2 = addElemt(newTr, 'td', "td-void-2", document.createTextNode(""));
     tdVoid2.colSpan = 3;
@@ -125,18 +115,16 @@ function addFooterTable(){
  */
 buttonOrderMonthlySalary.addEventListener('click', function(){
     if(order == null || !order){
-        dataSalary.sort(function(a, b){
-            return (a.employee_salary / 12) - (b.employee_salary / 12);
+        dataEmp.sort(function(a, b){
+            return a.employee_monthly_salary - b.employee_monthly_salary;
         });
-        clearTable();
         addData();
         this.textContent = '^';
         order = true;
     } else {
-        dataSalary.sort(function(a, b){
-            return (b.employee_salary / 12) - (a.employee_salary / 12);
+        dataEmp.sort(function(a, b){
+            return b.employee_monthly_salary - a.employee_monthly_salary;
         });
-        clearTable();
         addData();
         this.textContent = 'v';
         order = false;
@@ -178,4 +166,13 @@ function addElemt(parentElemt, typeElemt, classname, value){
     let newTd = addElemt(newTr, 'td', "td-error", document.createTextNode(mess));
     newTd.colSpan = 6;
  }
- 
+/*  
+ class Employee {
+    constructor(_employee){
+        Object.assign(this, _employee);
+        this.employee_monthly_salary = (this.employee_salary / 12).toFixed(2);
+        this.employe_email = ((this.employee_name.charAt(0) + '.' + (this.employee_name.split(' '))[1]) + + "@email.com").toLowerCase();
+        let dateOfDay = new Date();
+        this.employe_birth = (dateOfDay.getFullYear() - parseInt(this.employee_age));
+    }
+} */
