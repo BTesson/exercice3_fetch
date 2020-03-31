@@ -93,7 +93,7 @@ function addValue(elemt, value){
  * Fonction création du pied de tableau
  */
 function addFooterTable(){
-    let newTr = addElemt(tableEmpBody, 'tr', 'total-table', "");
+    let newTr = addElemt(tableEmpFoot, 'tr', 'total-table', "");
     
     addElemt(newTr, 'td', "total-employee-id", document.createTextNode(dataEmp.length));
 
@@ -135,9 +135,8 @@ buttonOrderMonthlySalary.addEventListener('click', function(){
  * Function d'éffacage du tableau
  */
 function clearTable(){
-    while(tableEmpBody.hasChildNodes()){
-        tableEmpBody.removeChild(tableEmpBody.firstChild);
-    }
+    tableEmpBody.innerHTML = "";
+    tableEmpFoot.innerHTML = "";
 }
 
 /**
@@ -166,13 +165,3 @@ function addElemt(parentElemt, typeElemt, classname, value){
     let newTd = addElemt(newTr, 'td', "td-error", document.createTextNode(mess));
     newTd.colSpan = 6;
  }
-/*  
- class Employee {
-    constructor(_employee){
-        Object.assign(this, _employee);
-        this.employee_monthly_salary = (this.employee_salary / 12).toFixed(2);
-        this.employe_email = ((this.employee_name.charAt(0) + '.' + (this.employee_name.split(' '))[1]) + + "@email.com").toLowerCase();
-        let dateOfDay = new Date();
-        this.employe_birth = (dateOfDay.getFullYear() - parseInt(this.employee_age));
-    }
-} */
